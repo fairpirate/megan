@@ -1,7 +1,7 @@
 """
 MEGAN Ollama Client
 Talks to local Ollama server — FREE, no API key, runs offline.
-Default model: gemma3:4b  (fast, capable, ~3GB RAM)
+Default model: gemma4:e4b  (fast, capable, ~3GB RAM)
 """
 
 import json
@@ -9,7 +9,7 @@ import requests
 from typing import Optional
 
 OLLAMA_BASE = "http://localhost:11434"
-DEFAULT_MODEL = "gemma3:4b"
+DEFAULT_MODEL = "gemma4:e4b"
 
 
 def get_available_models() -> list:

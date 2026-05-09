@@ -8,7 +8,8 @@ from pathlib import Path
 from core.modules_engine import (
     research_agent, format_research_report,
     generate_file, execute_code,
-    build_module, list_modules, list_outputs
+    build_module, list_modules, list_outputs,
+    delete_file, write_file
 )
 
 
@@ -43,6 +44,18 @@ def detect_intent(response: str) -> list:
         actions.append({"type": "list_modules"})
     if "[LIST_OUTPUTS]" in response.upper():
         actions.append({"type": "list_outputs"})
+    
+    # [DELETE_FILE: path]
+    for m in re.finditer(r'\[DELETE_FILE:\s*(.+?)\]', response, re.IGNORECASE):
+        actions.append({"type": "delete_file", "path": m.group(1).strip()})
+
+    # [WRITE_FILE: path]content[/WRITE_FILE]
+    for m in re.finditer(r'\[WRITE_FILE:\s*(.+?)\](.*?)\[/WRITE_FILE\]', response, re.IGNORECASE | re.DOTALL):
+        actions.append({
+            "type": "write_file",
+            "path": m.group(1).strip(),
+            "content": m.group(2).strip()
+        })
 
     return actions
 
@@ -86,6 +99,14 @@ def execute_actions(actions: list, mem: dict) -> list:
         elif t == "list_outputs":
             results.append({"action": "list_outputs", "files": list_outputs()})
 
+        elif t == "delete_file":
+            res = delete_file(action["path"])
+            results.append({"action": "delete_file", **res})
+
+        elif t == "write_file":
+            res = write_file(action["path"], action["content"])
+            results.append({"action": "write_file", **res})
+
     return results
 
 
@@ -117,4 +138,12 @@ def format_action_results(results: list) -> str:
             lines.append(f"📁  Outputs ({len(files)} files):")
             for f in files[:5]:
                 lines.append(f"    • {f['name']} ({f['size']} bytes)")
+        elif a == "delete_file":
+            ok = "✅" if r.get("status") == "ok" else "❌"
+            lines.append(f"{ok}  Deleted: {r.get('path','')} ({r.get('type','')})")
+            if r.get("error"): lines.append(f"    error: {r['error']}")
+        elif a == "write_file":
+            ok = "✅" if r.get("status") == "ok" else "❌"
+            lines.append(f"{ok}  Written: {r.get('path','')}")
+            if r.get("error"): lines.append(f"    error: {r['error']}")
     return "\n".join(lines)

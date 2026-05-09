@@ -13,7 +13,7 @@ from core.orchestrator  import detect_intent, execute_actions, format_action_res
 
 BANNER = """
 ╔══════════════════════════════════════════════════════════╗
-║   M E G A N   —   Autonomous AI OS  (Ollama / Gemma3)   ║
+║   M E G A N   —   Autonomous AI OS  (Ollama / Gemma4)   ║
 ║   100% Free · Runs Locally · No API Key Needed           ║
 ╚══════════════════════════════════════════════════════════╝
 Commands: exit · memory · modules · outputs · clear · models
@@ -61,7 +61,7 @@ def main():
         print("⚠️  Ollama is not running!")
         print("   Install : https://ollama.com")
         print("   Start   : ollama serve")
-        print("   Pull    : ollama pull gemma3:4b\n")
+        print("   Pull    : ollama pull gemma4:e4b\n")
     else:
         model = pick_model()
         print(f"✅  Ollama running  →  model: {model}\n")

@@ -1,5 +1,5 @@
 # MEGAN — Autonomous AI Operating System
-### Powered by Ollama + Gemma3 · 100% Free · Runs Fully Offline
+### Powered by Ollama + Gemma4 · 100% Free · Runs Fully Offline
 
 ---
 
@@ -30,8 +30,8 @@
 curl -fsSL https://ollama.com/install.sh | sh   # Mac/Linux
 # Windows: https://ollama.com/download
 
-# 2. Pull Gemma3 (~3GB, one-time)
-ollama pull gemma3:4b
+# 2. Pull Gemma4 (~3GB, one-time)
+ollama pull gemma4:e4b
 
 # 3. Clone / unzip MEGAN, then:
 cd megan
@@ -48,7 +48,7 @@ ollama serve
 
 # Terminal 2 — Web UI
 bash start_web.sh
-# → Open http://localhost:5000
+# → Open http://localhost:5001
 
 # OR — CLI
 bash start_cli.sh
@@ -62,7 +62,7 @@ bash start_cli.sh
 ollama pull llama3.2:3b      # Meta Llama 3.2 — very fast
 ollama pull phi4-mini        # Microsoft Phi-4 — great for code
 ollama pull mistral:7b       # Mistral 7B — strong reasoning
-ollama pull gemma3:12b       # Gemma3 12B — more powerful (needs 8GB RAM)
+ollama pull gemma4:12b       # Gemma4 12B — more powerful (needs 8GB RAM)
 ```
 
 MEGAN auto-selects the best available model. To force a specific one,
@@ -124,8 +124,8 @@ Embed these in conversation to trigger real actions:
 
 | Model | RAM needed |
 |-------|-----------|
-| gemma3:4b | ~4 GB |
+| gemma4:e4b | ~4 GB |
 | llama3.2:3b | ~3 GB |
 | phi4-mini | ~3 GB |
 | mistral:7b | ~6 GB |
-| gemma3:12b | ~10 GB |
+| gemma4:12b | ~10 GB |

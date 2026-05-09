@@ -1,9 +1,9 @@
 #!/bin/bash
-# MEGAN Setup Script — Ollama + Gemma3 edition
+# MEGAN Setup Script — Ollama + Gemma4 edition
 set -e
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
-echo "║   MEGAN Setup  (Ollama / Gemma3 — 100% Free)    ║"
+echo "║   MEGAN Setup  (Ollama / Gemma4 — 100% Free)    ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
@@ -37,13 +37,13 @@ echo ""
 if command -v ollama &>/dev/null; then
   echo "✅  Ollama found: $(ollama --version 2>/dev/null || echo 'installed')"
   echo ""
-  echo "▸   Checking if gemma3:4b is available..."
-  if ollama list 2>/dev/null | grep -q "gemma3:4b"; then
-    echo "✅  gemma3:4b already installed"
+  echo "▸   Checking if gemma4:e4b is available..."
+  if ollama list 2>/dev/null | grep -q "gemma4:e4b"; then
+    echo "✅  gemma4:e4b already installed"
   else
-    echo "▸   Pulling gemma3:4b (≈3GB, one-time download)..."
-    ollama pull gemma3:4b
-    echo "✅  gemma3:4b ready"
+    echo "▸   Pulling gemma4:e4b (≈3GB, one-time download)..."
+    ollama pull gemma4:e4b
+    echo "✅  gemma4:e4b ready"
   fi
 else
   echo "⚠️   Ollama not installed."
@@ -53,7 +53,7 @@ else
   echo "    → Windows     : https://ollama.com/download"
   echo ""
   echo "    Then run:"
-  echo "    → ollama pull gemma3:4b"
+  echo "    → ollama pull gemma4:e4b"
   echo ""
 fi
 

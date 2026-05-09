@@ -17,6 +17,7 @@ OUTPUTS_DIR = Path(__file__).parent.parent / "outputs"
 MODULES_DIR = Path(__file__).parent.parent / "modules"
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 MODULES_DIR.mkdir(parents=True, exist_ok=True)
+ROOT_DIR = Path(__file__).parent.parent
 
 
 # ─────────────────────────────────────────────────────
@@ -24,29 +25,47 @@ MODULES_DIR.mkdir(parents=True, exist_ok=True)
 # ─────────────────────────────────────────────────────
 
 def research_agent(query: str, max_results: int = 6) -> dict:
-    import urllib.request, urllib.parse, html, re
+    import urllib.request, urllib.parse, html, re, ssl
     url = f"https://lite.duckduckgo.com/lite/?q={urllib.parse.quote(query)}"
-    req = urllib.request.Request(url, headers={"User-Agent": "MEGAN/2.0"})
+    # Using a common browser UA to avoid blocks
+    ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    req = urllib.request.Request(url, headers={"User-Agent": ua})
+    
+    # Bypass SSL verification issues common on macOS
+    context = ssl._create_unverified_context()
+    
     try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
+        with urllib.request.urlopen(req, timeout=12, context=context) as resp:
             body = resp.read().decode("utf-8", errors="replace")
     except Exception as e:
         return {"query": query, "results": [], "status": f"error: {e}"}
 
-    snippets = re.findall(r'<td[^>]*class="result-snippet"[^>]*>(.*?)</td>', body, re.DOTALL)
-    links    = re.findall(r'<a[^>]+href="(https?://[^"]+)"[^>]*class="result-link"', body)
-    titles   = re.findall(r'<a[^>]+class="result-link"[^>]*>(.*?)</a>', body)
+    # Robust regex for DDG Lite HTML structure
+    snippets = re.findall(r"<td[^>]*class=['\"]result-snippet['\"][^>]*>(.*?)</td>", body, re.DOTALL)
+    # Match link and title together
+    results_raw = re.findall(r"<a[^>]+href=['\"]([^'\"]+)['\"][^>]*class=['\"]result-link['\"][^>]*>(.*?)</a>", body, re.DOTALL)
 
     def clean(s):
         s = re.sub(r'<[^>]+>', '', s)
         return html.unescape(s).strip()
 
     results = []
-    for i in range(min(max_results, len(snippets))):
+    for i, (link, title) in enumerate(results_raw):
+        if i >= max_results: break
+        
+        # Clean redirect URLs (uddg parameter)
+        if "uddg=" in link:
+            try:
+                parsed = urllib.parse.urlparse(link)
+                qs = urllib.parse.parse_qs(parsed.query)
+                if "uddg" in qs:
+                    link = qs["uddg"][0]
+            except: pass
+            
         results.append({
-            "title":   clean(titles[i])  if i < len(titles)  else f"Result {i+1}",
-            "url":     links[i]          if i < len(links)   else "",
-            "snippet": clean(snippets[i])
+            "title":   clean(title),
+            "url":     link if link.startswith("http") else f"https:{link}" if link.startswith("//") else link,
+            "snippet": clean(snippets[i]) if i < len(snippets) else ""
         })
 
     return {"query": query, "results": results, "status": "ok"}
@@ -189,3 +208,40 @@ def list_outputs() -> list:
         return []
     files = sorted(OUTPUTS_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
     return [{"name": p.name, "size": p.stat().st_size, "path": str(p)} for p in files[:30]]
+
+
+# ─────────────────────────────────────────────────────
+# FILE SYSTEM MANAGEMENT
+# ─────────────────────────────────────────────────────
+
+def delete_file(target_path: str) -> dict:
+    """Delete a file or directory."""
+    try:
+        path = ROOT_DIR / target_path
+        if not path.exists():
+            return {"status": "error", "error": "Path does not exist"}
+        
+        # Safety: don't allow deleting everything
+        if path.resolve() == ROOT_DIR.resolve():
+            return {"status": "error", "error": "Cannot delete project root"}
+
+        if path.is_file():
+            path.unlink()
+            return {"status": "ok", "path": str(path), "type": "file"}
+        else:
+            import shutil
+            shutil.rmtree(path)
+            return {"status": "ok", "path": str(path), "type": "directory"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+def write_file(target_path: str, content: str) -> dict:
+    """Write content directly to a specific path."""
+    try:
+        path = ROOT_DIR / target_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        return {"status": "ok", "path": str(path), "filename": path.name}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
