@@ -174,6 +174,29 @@ def execute_code(code: str, timeout: int = 30) -> dict:
         Path(tmp).unlink(missing_ok=True)
 
 
+def run_shell(command: str, timeout: int = 30) -> dict:
+    """Run an arbitrary shell command."""
+    try:
+        res = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=ROOT_DIR
+        )
+        return {
+            "status": "ok" if res.returncode == 0 else "error",
+            "stdout": res.stdout[:4000],
+            "stderr": res.stderr[:2000],
+            "returncode": res.returncode
+        }
+    except subprocess.TimeoutExpired:
+        return {"status": "timeout", "stdout": "", "stderr": "Timed out", "returncode": -1}
+    except Exception as e:
+        return {"status": "error", "stdout": "", "stderr": str(e), "returncode": -1}
+
+
 # ─────────────────────────────────────────────────────
 # BUILDER ENGINE
 # ─────────────────────────────────────────────────────

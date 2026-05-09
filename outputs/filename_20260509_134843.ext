@@ -1,0 +1,12 @@
+file content here[/SAVE_FILE]**
+    *   *Purpose:* Saves specified content into a file in the `outputs/` directory.
+3.  **[RUN_CODE]python code here[/RUN_CODE]**
+    *   *Purpose:* Executes the provided Python code in a sandboxed environment.
+4.  **[BUILD_MODULE: module_name|short description]python code[/BUILD_MODULE]**
+    *   *Purpose:* Creates a new, self-contained Python module, registers it, and makes it available for use.
+5.  **[LIST_MODULES]**
+    *   *Purpose:* Lists all currently available and registered Python modules.
+6.  **[LIST_OUTPUTS]**
+    *   *Purpose:* Lists all files that have been generated in the `outputs/` directory.
+7.  **[SHELL: command]**
+    *   *Purpose:* Executes arbitrary shell commands directly in the environment.

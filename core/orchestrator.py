@@ -9,30 +9,34 @@ from core.modules_engine import (
     research_agent, format_research_report,
     generate_file, execute_code,
     build_module, list_modules, list_outputs,
-    delete_file, write_file
+    delete_file, write_file, run_shell
 )
 
 
 def detect_intent(response: str) -> list:
+    # 1. Clean response for detection: hide code blocks to avoid executing examples
+    clean_text = re.sub(r'```.*?```', '', response, flags=re.DOTALL)
+    clean_text = re.sub(r'`.*?`', '', clean_text)
+    
     actions = []
 
     # [RESEARCH: query]
-    for m in re.finditer(r'\[RESEARCH:\s*(.+?)\]', response, re.IGNORECASE):
+    for m in re.finditer(r'\[RESEARCH:\s*(.+?)\]', clean_text, re.IGNORECASE):
         actions.append({"type": "research", "query": m.group(1).strip()})
 
     # [SAVE_FILE: name.ext]content
-    for m in re.finditer(r'\[SAVE_FILE:\s*(.+?)\](.*?)(?=\[SAVE_FILE:|$)', response, re.IGNORECASE | re.DOTALL):
+    for m in re.finditer(r'\[SAVE_FILE:\s*(.+?)\](.*?)(?=\[SAVE_FILE:|$)', clean_text, re.IGNORECASE | re.DOTALL):
         fname   = m.group(1).strip()
         content = m.group(2).strip()
         ext     = Path(fname).suffix.lstrip(".") or "md"
         actions.append({"type": "save_file", "filename": fname, "content": content, "format": ext})
 
     # [RUN_CODE]...[/RUN_CODE]
-    for m in re.finditer(r'\[RUN_CODE\](.*?)\[/RUN_CODE\]', response, re.IGNORECASE | re.DOTALL):
+    for m in re.finditer(r'\[RUN_CODE\](.*?)\[/RUN_CODE\]', clean_text, re.IGNORECASE | re.DOTALL):
         actions.append({"type": "run_code", "code": m.group(1).strip()})
 
     # [BUILD_MODULE: name|description]code[/BUILD_MODULE]
-    for m in re.finditer(r'\[BUILD_MODULE:\s*(.+?)\|(.*?)\](.*?)\[/BUILD_MODULE\]', response, re.IGNORECASE | re.DOTALL):
+    for m in re.finditer(r'\[BUILD_MODULE:\s*(.+?)\|(.*?)\](.*?)\[/BUILD_MODULE\]', clean_text, re.IGNORECASE | re.DOTALL):
         actions.append({
             "type": "build_module",
             "name": m.group(1).strip(),
@@ -40,22 +44,26 @@ def detect_intent(response: str) -> list:
             "code": m.group(3).strip()
         })
 
-    if "[LIST_MODULES]" in response.upper():
+    if "[LIST_MODULES]" in clean_text.upper():
         actions.append({"type": "list_modules"})
-    if "[LIST_OUTPUTS]" in response.upper():
+    if "[LIST_OUTPUTS]" in clean_text.upper():
         actions.append({"type": "list_outputs"})
     
     # [DELETE_FILE: path]
-    for m in re.finditer(r'\[DELETE_FILE:\s*(.+?)\]', response, re.IGNORECASE):
+    for m in re.finditer(r'\[DELETE_FILE:\s*(.+?)\]', clean_text, re.IGNORECASE):
         actions.append({"type": "delete_file", "path": m.group(1).strip()})
 
     # [WRITE_FILE: path]content[/WRITE_FILE]
-    for m in re.finditer(r'\[WRITE_FILE:\s*(.+?)\](.*?)\[/WRITE_FILE\]', response, re.IGNORECASE | re.DOTALL):
+    for m in re.finditer(r'\[WRITE_FILE:\s*(.+?)\](.*?)\[/WRITE_FILE\]', clean_text, re.IGNORECASE | re.DOTALL):
         actions.append({
             "type": "write_file",
             "path": m.group(1).strip(),
             "content": m.group(2).strip()
         })
+    
+    # [SHELL: command]
+    for m in re.finditer(r'\[SHELL:\s*(.+?)\]', clean_text, re.IGNORECASE):
+        actions.append({"type": "shell", "command": m.group(1).strip()})
 
     return actions
 
@@ -107,6 +115,10 @@ def execute_actions(actions: list, mem: dict) -> list:
             res = write_file(action["path"], action["content"])
             results.append({"action": "write_file", **res})
 
+        elif t == "shell":
+            res = run_shell(action["command"])
+            results.append({"action": "shell", "command": action["command"], **res})
+
     return results
 
 
@@ -146,4 +158,10 @@ def format_action_results(results: list) -> str:
             ok = "✅" if r.get("status") == "ok" else "❌"
             lines.append(f"{ok}  Written: {r.get('path','')}")
             if r.get("error"): lines.append(f"    error: {r['error']}")
+        elif a == "shell":
+            ok = "✅" if r.get("status") == "ok" else "❌"
+            out = r.get("stdout","")[:200]
+            lines.append(f"{ok}  Shell: {r.get('command','')} → rc={r.get('returncode')}" + (f": {out}" if out else ""))
+            if r.get("stderr"):
+                lines.append(f"    stderr: {r['stderr'][:200]}")
     return "\n".join(lines)
